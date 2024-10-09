@@ -5,12 +5,12 @@ constexpr int DEFAULT_DATE_DAY = 1;
 constexpr int DEFAULT_DATE_MONTH = 1;
 constexpr int DEFAULT_DATE_YEAR = 1970;
 
-bool isLeapYear(int year)
+bool isLeapYear(const int year)
 {
    return (!(year % 4) && year % 100) || !(year % 400);
 }
 
-int getDayOnMonth(int month, int year)
+int getDayOnMonth(const int month, const int year)
 {
    switch (month)
    {
@@ -33,7 +33,7 @@ int getDayOnMonth(int month, int year)
    }
 }
 
-int getDayOnYear(int year)
+int getDayOnYear(const int year)
 {
    if (isLeapYear(year))
       return 366;
@@ -44,11 +44,11 @@ int getDayOnYear(int year)
 class Date
 {
 public:
-   Date(int day, int month, int year)
+   Date(const int day, const int month, const int year)
    {
       if (!IsCorrectDate(day, month, year))
       {
-         day = 0;
+         m_day = 0;
       }
       else
       {
@@ -61,18 +61,18 @@ public:
       }
    }
 
-   int GetYear() const { return std::get<2>(this->ToDateTuple()); }
-   int GetMonth() const { return std::get<1>(this->ToDateTuple()); }
-   int GetDay() const { return std::get<0>(this->ToDateTuple()); }
+   [[nodiscard]] int GetYear() const { return std::get<2>(this->ToDateTuple()); }
+   [[nodiscard]] int GetMonth() const { return std::get<1>(this->ToDateTuple()); }
+   [[nodiscard]] int GetDay() const { return std::get<0>(this->ToDateTuple()); }
 
-   Date operator+ (int d) const
+   Date operator+ (const int d) const
    {
       Date result(*this);
       result.SetFromDays(result.GetTotalDays() + d);
       return result;
    }
 
-   Date operator- (int d) const
+   Date operator- (const int d) const
    {
       Date result(*this);
       result.SetFromDays(result.GetTotalDays() - d);
@@ -88,22 +88,24 @@ private:
    // int m_month{DEFAULT_DATE_MONTH};
    // int m_year{DEFAULT_DATE_YEAR};
 
-   bool IsCorrectDate(const int day, const int month, const int year) const {
+   static bool IsCorrectDate(const int day, const int month, const int year)
+   {
       return month <= 12 && month >= 1
              && day <= getDayOnMonth(month, year)
              && day > 0;
    }
 
-   bool IsCorrectDate() const {
+   [[nodiscard]] bool IsCorrectDate() const {
       return IsCorrectDate(GetDay(), GetMonth(), GetYear());
    }
 
-   int GetTotalDays() const
+   [[nodiscard]] int GetTotalDays() const
    {
       return m_day;
    }
 
-   int DaysPassedToMonth(int month, int year) const {
+   [[nodiscard]] static int DaysPassedToMonth(const int month, const int year)
+   {
       int result = 0;
       for (int i = 1; i < month; ++i)
       {
@@ -112,7 +114,7 @@ private:
       return result;
    }
 
-   std::tuple<int, int, int> ToDateTuple() const
+   [[nodiscard]] std::tuple<int, int, int> ToDateTuple() const
    {
       auto d = m_day;
       int month = DEFAULT_DATE_MONTH;
@@ -131,7 +133,7 @@ private:
       return {d, month, year};
    }
 
-   void SetFromDays(int days)
+   void SetFromDays(const int days)
    {
       m_day = days;
    }
@@ -153,7 +155,9 @@ int main()
    d2 = d2 - 1;
    std::cout << d2.GetYear() << " " << d2.GetMonth() << " " << d2.GetDay() << std::endl;
 
-   Date d3(1,1,1970);
+   const Date d3(1,1,1970);
    std::cout << d3.GetYear() << " " << d3.GetMonth() << " " << d3.GetDay() << std::endl;
+
+   d3.GetDay();
    return 0;
 }
