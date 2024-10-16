@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <vector>
 
@@ -6,76 +7,184 @@ class Polynomial
 {
 private:
    std::vector<T> m_coefficients;
+   inline static const T valueTypeZero{0};
+   using ConstIter = typename std::vector<T>::const_iterator;
 
-public:
-   Polynomial(const std::vector<T>& coefficients)
+   void Normalize()
    {
-      m_coefficients = coefficients;
-   }
-
-   Polynomial(const T& coefficient)
-   {
-      m_coefficients.push_back(coefficient);
-   }
-
-   template<typename Iter>
-   Polynomial(Iter first, Iter last)
-   {
-      for (; first != last; ++first)
+      while (!m_coefficients.empty() && m_coefficients.back() == valueTypeZero)
       {
-         m_coefficients.push_back(*first);
+         m_coefficients.pop_back();
       }
    }
 
-   bool Empty()
+   std::vector<T>& GetCoefficients()
    {
-      return m_coefficients.empty();
+      return m_coefficients;
    }
 
-   int Degree()
+public:
+
+   Polynomial(const std::vector<T>& coefficients) : m_coefficients{coefficients}
    {
-      if (Empty())
-         return 1;
-
-      return m_coefficients.size() - 1;
+      Normalize();
    }
 
-   bool operator==(const Polynomial& rhs) const
+   Polynomial(const T& coefficient = {})
    {
-      return m_coefficients == rhs.m_coefficients;
+      if (coefficient != valueTypeZero)
+         m_coefficients.push_back(coefficient);
    }
 
-   T& operator [] (size_t i) {
-      if (i >= m_coefficients.size())
-         return 0;
-
-      return m_coefficients[i];
+   template<typename Iter>
+   Polynomial(Iter first, Iter last) : m_coefficients{first, last}
+   {
+      Normalize();
    }
 
-   const T& operator [] (size_t i) const {
-      if (i >= m_coefficients.size())
-         return 0;
+   const std::vector<T>& GetCoefficients() const
+   {
+      return m_coefficients;
+   }
 
-      return m_coefficients.at(i);
+   size_t Dimension() const {
+      return m_coefficients.size();
+   }
+
+   int Degree() const
+   {
+      return static_cast<int>(GetCoefficients().size()) - 1;
+   }
+
+   friend bool operator== (const Polynomial& lhs, const Polynomial& rhs)
+   {
+      return lhs.GetCoefficients() == rhs.GetCoefficients();
+   }
+
+   friend bool operator!= (const Polynomial& lhs, const Polynomial& rhs)
+   {
+      return !(lhs == rhs);
+   }
+
+   const T& operator[] (size_t i) const {
+      if (static_cast<int>(i) > Degree())
+         return valueTypeZero;
+
+      return GetCoefficients()[i];
+   }
+
+   T operator() (const T& value) const
+   {
+      T result = valueTypeZero;
+
+      for (auto i = Degree(); i >=0; --i)
+      {
+         result *= value;
+         result += GetCoefficients()[i];
+      }
+
+      return result;
+   }
+
+   Polynomial<T>& operator += (const Polynomial<T>& other) {
+      if (other.Degree() > Degree()) {
+         GetCoefficients().resize(other.Degree() + 1);
+      }
+
+      for (int i = 0; i <= Degree() && i <= other.Degree(); ++i) {
+         GetCoefficients()[i] += other.GetCoefficients()[i];
+      }
+
+      Normalize();
+
+      return *this;
+   }
+
+   Polynomial<T>& operator -= (const Polynomial<T>& other) {
+      if (other.Degree() > Degree()) {
+         GetCoefficients().resize(other.Degree() + 1);
+      }
+
+      for (int i = 0; i <= Degree() && i <= other.Degree(); ++i) {
+         GetCoefficients()[i] -= other.GetCoefficients()[i];
+      }
+
+      Normalize();
+
+      return *this;
+   }
+
+    Polynomial<T>& operator *= (const Polynomial<T>& other) {
+        if (Degree() == -1 || other.Degree() == -1) {
+            GetCoefficients().resize(0);
+            return *this;
+        }
+
+        std::vector<T> tmp(Degree() + other.Degree() + 1);
+        for (int i = 0; i <= Degree(); ++i) {
+            for (int j = 0; j <= other.Degree(); ++j) {
+                tmp[i + j] += GetCoefficients()[i] * other.GetCoefficients()[j];
+            }
+        }
+        GetCoefficients() = std::move(tmp);
+        Normalize();
+        return *this;
+    }
+
+   friend Polynomial<T> operator+(Polynomial<T> v1, const Polynomial<T>& v2)
+   {
+      return v1 += v2;
+   }
+
+   friend Polynomial<T> operator-(Polynomial<T> v1, const Polynomial<T>& v2)
+   {
+      return v1 -= v2;
+   }
+
+   friend Polynomial<T> operator*(Polynomial<T> v1, const Polynomial<T>& v2)
+   {
+      return v1 *= v2;
+   }
+
+   ConstIter begin() const
+   {
+      return GetCoefficients().cbegin();
+   }
+
+   ConstIter end() const
+   {
+      return GetCoefficients().cend();
    }
 };
 
 template <typename T>
-bool operator==(const Polynomial<T>& lhs, const T& rhs)
+std::ostream& operator<< (std::ostream& out, const Polynomial<T>& v)
 {
-   if (lhs.Empty()) return false;
-   return lhs[0] == rhs;
-}
+   for (auto i = v.Degree(); i >= 0; --i)
+   {
+      out << v[i];
+      if (i != 0)
+      {
+         out << ' ';
+      }
+   }
 
-template <typename T>
-bool operator==(const T& lhs, const Polynomial<T>& rhs)
-{
-   if (rhs.Empty()) return false;
-   return lhs == rhs[0];
+   return out;
 }
 
 int main()
 {
-   std::cout << "Hello, World!" << std::endl;
+   Polynomial<int> p1(0);
+   Polynomial<int> p2(std::vector<int>{2,0,1});
+
+   auto p3 = p1 + p2;
+   std::cout << p3 << std::endl;
+
+   auto p4 = p1 - p2;
+   std::cout << p4 << std::endl;
+
+   auto p5 = p1 * p2;
+   std::cout << p5 << std::endl;
+
    return 0;
 }
